@@ -1,28 +1,50 @@
 ---
-- name: Configure AWS Database and VPN Node
-  hosts: aws_node
-  user: ubuntu
+# 1. AWS Public VPN Node
+- name: Configure AWS VPN Node
+  hosts: aws_vpn
   become: yes
+  gather_facts: no
   tasks:
-    - name: Install MySQL, WireGuard and Snort
+    - name: Wait for SSH to become available
+      wait_for_connection:
+        delay: 5
+        timeout: 300
+    - name: Gather facts
+      setup:
+    - name: Update apt cache
       apt:
-        name: 
-          - mysql-server
-          - wireguard
-          - snort
-        state: latest
         update_cache: yes
 
+# 2. AWS Private Database Node
+- name: Configure AWS Database Node
+  hosts: aws_db
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Wait for SSH to become available via Bastion
+      wait_for_connection:
+        delay: 5
+        timeout: 300
+    - name: Gather facts
+      setup:
+    - name: Install MySQL Server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+# 3. OCI Public Web & VPN Node
 - name: Configure OCI Web and VPN Node
   hosts: oci_node
-  user: ubuntu
   become: yes
+  gather_facts: no
   tasks:
-    - name: Install Docker, WireGuard and Snort
+    - name: Wait for SSH to become available
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+    - name: Gather facts
+      setup:
+    - name: Update apt cache
       apt:
-        name: 
-          - docker.io
-          - wireguard
-          - snort
-        state: latest
         update_cache: yes
