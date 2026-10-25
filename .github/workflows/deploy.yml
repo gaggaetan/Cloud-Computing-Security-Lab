@@ -15,7 +15,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      - name: Configure AWS Credentials 
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -35,16 +35,6 @@ jobs:
         run: |
           terraform init
           terraform apply -auto-approve
-
-      - name: Generate Dynamic Ansible Inventory
-        working-directory: ./terraform
-        run: |
-          # Retrieve the IP from Terraform output
-          AWS_IP=$(terraform output -raw aws_static_ip)
-          
-          # Overwrite the inventory.ini file with the correct IP
-          echo "[aws_node]" > ../ansible/inventory.ini
-          echo "$AWS_IP ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ../ansible/inventory.ini
 
       - name: Setup SSH Private Key
         run: |
