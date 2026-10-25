@@ -75,7 +75,7 @@
         query: 
           - "CREATE TABLE IF NOT EXISTS messages (id INT AUTO_INCREMENT PRIMARY KEY, text VARCHAR(255))"
           - "TRUNCATE TABLE messages"
-          - "INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel! - this mean you finsih the lab !!!!!! youhoooooooo - gaetan"')"
+          - "INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel! - this mean you finsih the lab !!!!!! youhoooooooo - gaetan')"
   handlers:
     - name: Restart MySQL
       service:
