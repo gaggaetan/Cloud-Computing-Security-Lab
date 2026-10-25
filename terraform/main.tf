@@ -130,7 +130,7 @@ data "oci_core_images" "ubuntu_images" {
 # Create OCI Instance (Web + VPN) (PAID TIER SHAPE)
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
-  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
+  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[1].name
   shape               = "VM.Standard.E4.Flex" # Paid AMD Shape
 
   # Explicit CPU and memory allocation (Minimizing costs)
