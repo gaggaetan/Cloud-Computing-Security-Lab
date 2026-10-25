@@ -72,9 +72,10 @@
       community.mysql.mysql_query:
         login_db: lab_db
         login_unix_socket: /var/run/mysqld/mysqld.sock
-        query: |
-          CREATE TABLE IF NOT EXISTS messages (id INT AUTO_INCREMENT PRIMARY KEY, text VARCHAR(255));
-          INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel!') ON DUPLICATE KEY UPDATE text=text;
+        query: 
+          - "CREATE TABLE IF NOT EXISTS messages (id INT AUTO_INCREMENT PRIMARY KEY, text VARCHAR(255))"
+          - "TRUNCATE TABLE messages"
+          - "INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel!')"
   handlers:
     - name: Restart MySQL
       service:
