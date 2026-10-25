@@ -143,16 +143,39 @@
       copy:
         dest: /var/www/html/index.php
         content: |
-          <?php
-          $mysqli = new mysqli("10.1.2.50", "lab_user", "SuperSecretPassword123!", "lab_db");
-          if ($mysqli->connect_error) {
-            die("Connection failed (VPN might be down): " . $mysqli->connect_error);
-          }
-          $result = $mysqli->query("SELECT text FROM messages LIMIT 1");
-          $row = $result->fetch_assoc();
-          echo "<h1>Success!</h1>";
-          echo "<p>Message from DB: " . $row['text'] . "</p>";
-          ?>
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>OCI Web Server</title>
+              <style>body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }</style>
+          </head>
+          <body>
+              <h1>🌐 Le Serveur Web fonctionne !</h1>
+              <p>Cette page est servie depuis votre instance Oracle Cloud.</p>
+              <hr>
+              <h2>Statut de la Base de Données (via VPN) :</h2>
+              <?php
+              // Désactiver l'affichage des erreurs brutes pour gérer proprement
+              mysqli_report(MYSQLI_REPORT_OFF);
+              
+              $mysqli = @new mysqli("10.1.2.50", "lab_user", "SuperSecretPassword123!", "lab_db");
+              
+              if ($mysqli->connect_error) {
+                  echo "<p style='color: red;'><strong>❌ Échec de la connexion :</strong> " . htmlspecialchars($mysqli->connect_error) . "</p>";
+                  echo "<p>Vérifiez que le tunnel WireGuard est monté et que le Security Group AWS autorise le port 3306.</p>";
+              } else {
+                  $result = $mysqli->query("SELECT text FROM messages LIMIT 1");
+                  if ($result && $row = $result->fetch_assoc()) {
+                      echo "<p style='color: green;'><strong>✅ Connexion réussie !</strong></p>";
+                      echo "<p>Message extrait de la BDD AWS : <em>" . htmlspecialchars($row['text']) . "</em></p>";
+                  } else {
+                      echo "<p style='color: orange;'>✅ Connecté, mais aucune donnée trouvée dans la table.</p>";
+                  }
+                  $mysqli->close();
+              }
+              ?>
+          </body>
+          </html>
     - name: Remove default index.html
       file:
         path: /var/www/html/index.html

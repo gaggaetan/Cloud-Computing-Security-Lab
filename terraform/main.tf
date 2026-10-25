@@ -128,14 +128,17 @@ resource "aws_security_group" "db_sg" {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
-    security_groups = [aws_security_group.vpn_sg.id] # SSH only via VPN Jump Host
+    security_groups = [aws_security_group.vpn_sg.id]
   }
+  
+  # CORRECTION ICI : Autoriser MySQL depuis le réseau AWS (NAT) et le tunnel WireGuard
   ingress {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    cidr_blocks     = ["10.0.1.0/24"] # Allow MySQL from OCI via VPN
+    cidr_blocks     = ["10.1.0.0/16", "10.99.0.0/24"] 
   }
+  
   egress {
     from_port   = 0
     to_port     = 0
