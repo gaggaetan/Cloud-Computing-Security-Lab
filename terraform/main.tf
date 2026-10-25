@@ -45,4 +45,11 @@ resource "aws_instance" "aws_db_vpn" {
   }
 }
 
+resource "aws_eip" "vpn_ip" {
+  instance = aws_instance.aws_db_vpn.id
+  domain   = "vpc"
+}
+
+
+
 # (Ajoutez ici votre bloc resource "oci_core_instance" pour la partie Oracle)
