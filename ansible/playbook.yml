@@ -3,11 +3,14 @@
 - name: Prepare VPN Nodes and Install WireGuard
   hosts: aws_vpn, oci_node
   become: yes
+  gather_facts: no
   tasks:
     - name: Wait for SSH
       wait_for_connection:
         delay: 5
         timeout: 300
+    - name: Gather facts
+      setup:
     - name: Install WireGuard
       apt:
         name: wireguard
@@ -26,11 +29,14 @@
 - name: Configure AWS Database Node
   hosts: aws_db
   become: yes
+  gather_facts: no
   tasks:
     - name: Wait for SSH via Bastion
       wait_for_connection:
         delay: 5
         timeout: 300
+    - name: Gather facts
+      setup:
     - name: Install MySQL Server
       apt:
         name: mysql-server
