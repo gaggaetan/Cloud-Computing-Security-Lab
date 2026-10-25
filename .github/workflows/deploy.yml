@@ -27,7 +27,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: "us-east-1"
+          AWS_DEFAULT_REGION: "eu-central-1"
           TF_VAR_oci_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
           TF_VAR_oci_user_ocid: ${{ secrets.OCI_USER_OCID }}
           TF_VAR_oci_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
