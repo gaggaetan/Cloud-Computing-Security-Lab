@@ -89,7 +89,7 @@ resource "aws_security_group" "vpn_sg" {
   description = "Allow SSH, WireGuard, and internal NAT traffic"
   vpc_id      = aws_vpc.lab_vpc.id
 
-  # New rule: Allow traffic from the private subnet to use the NAT
+  # Allow traffic from the private subnet to use the NAT
   ingress {
     from_port   = 0
     to_port     = 0
@@ -118,6 +118,7 @@ resource "aws_security_group" "vpn_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 resource "aws_security_group" "db_sg" {
   name        = "aws_db_sg"
   description = "Allow MySQL and SSH from VPN only"
@@ -159,7 +160,6 @@ resource "aws_instance" "aws_vpn" {
               iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
               EOF
 
-  # Force Terraform to recreate the instance to apply the new script
   user_data_replace_on_change = true
 
   tags = { Name = "AWS-VPN-Node" }
@@ -227,12 +227,52 @@ resource "oci_core_route_table" "lab_rt" {
   }
 }
 
+# NEW: Custom Security List for OCI to allow SSH, HTTP, and WireGuard
+resource "oci_core_security_list" "web_sl" {
+  compartment_id = var.oci_tenancy_ocid
+  vcn_id         = oci_core_vcn.lab_vcn.id
+  display_name   = "OCI-Web-SL"
+
+  egress_security_rules {
+    destination = "0.0.0.0/0"
+    protocol    = "all"
+  }
+
+  ingress_security_rules {
+    protocol = "6" # TCP
+    source   = "0.0.0.0/0"
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+  
+  ingress_security_rules {
+    protocol = "6" # TCP
+    source   = "0.0.0.0/0" 
+    tcp_options {
+      min = 80
+      max = 80
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "17" # UDP
+    source   = "0.0.0.0/0" 
+    udp_options {
+      min = 51820
+      max = 51820
+    }
+  }
+}
+
 resource "oci_core_subnet" "lab_subnet" {
   compartment_id    = var.oci_tenancy_ocid
   vcn_id            = oci_core_vcn.lab_vcn.id
   cidr_block        = "10.0.1.0/24"
   route_table_id    = oci_core_route_table.lab_rt.id
-  security_list_ids = [oci_core_vcn.lab_vcn.default_security_list_id] 
+  # Attached the new custom security list here
+  security_list_ids = [oci_core_security_list.web_sl.id] 
 }
 
 data "oci_core_images" "ubuntu_images" {
