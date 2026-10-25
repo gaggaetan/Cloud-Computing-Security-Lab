@@ -120,7 +120,7 @@ resource "oci_core_subnet" "lab_subnet" {
 data "oci_core_images" "ubuntu_images" {
   compartment_id           = var.oci_tenancy_ocid
   operating_system         = "Canonical Ubuntu"
-  operating_system_version = "20.04" # MATCHING MANUAL SETUP
+  operating_system_version = "22.04" # MATCHING MANUAL SETUP
   shape                    = "VM.Standard.E3.Flex" 
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
