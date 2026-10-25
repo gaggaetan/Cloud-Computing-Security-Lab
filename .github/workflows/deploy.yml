@@ -36,6 +36,22 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
+      - name: Generate Dynamic Ansible Inventory
+        working-directory: ./terraform
+        run: |
+          # Retrieve the IP from Terraform output
+          AWS_IP=$(terraform output -raw aws_static_ip)
+          
+          # Overwrite the inventory.ini file with the correct IP
+          echo "[aws_node]" > ../ansible/inventory.ini
+          echo "$AWS_IP ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ../ansible/inventory.ini
+
+      - name: Setup SSH Private Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
       - name: Run Ansible Configuration
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
