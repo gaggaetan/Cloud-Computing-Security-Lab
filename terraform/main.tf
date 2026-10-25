@@ -121,7 +121,7 @@ data "oci_core_images" "ubuntu_images" {
   compartment_id           = var.oci_tenancy_ocid
   operating_system         = "Canonical Ubuntu"
   operating_system_version = "22.04"
-  shape                    = "VM.Standard.E2.1.Micro" 
+  shape                    = "VM.Standard.A1.Flex"
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
@@ -129,7 +129,7 @@ data "oci_core_images" "ubuntu_images" {
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  shape               = "VM.Standard.A1.Flex" 
+  shape               = "VM.Standard.A1.Flex"
 
   shape_config {
     ocpus         = 1
