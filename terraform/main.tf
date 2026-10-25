@@ -141,13 +141,17 @@ resource "aws_instance" "aws_vpn" {
   subnet_id              = aws_subnet.public_subnet.id
   key_name               = aws_key_pair.ansible_key.key_name
   vpc_security_group_ids = [aws_security_group.vpn_sg.id]
-  source_dest_check      = false # Required for VPN routing
+  source_dest_check      = false 
 
+  # Updated to use ens5 for Ubuntu 22.04 on AWS
   user_data = <<-EOF
               #!/bin/bash
               sysctl -w net.ipv4.ip_forward=1
-              iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+              iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
               EOF
+
+  # Force Terraform to recreate the instance to apply the new script
+  user_data_replace_on_change = true
 
   tags = { Name = "AWS-VPN-Node" }
 }
