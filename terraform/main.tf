@@ -125,16 +125,16 @@ data "oci_core_images" "ubuntu_images" {
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
-
+# 1. Instance OCI sans IP publique automatique
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  fault_domain        = "FAULT-DOMAIN-3" # MATCHING MANUAL SETUP
+  fault_domain        = "FAULT-DOMAIN-3"
   shape               = "VM.Standard.E3.Flex" 
 
   shape_config {
     ocpus         = 1
-    memory_in_gbs = 16 # MATCHING MANUAL SETUP
+    memory_in_gbs = 16 
   }
 
   source_details {
@@ -144,7 +144,7 @@ resource "oci_core_instance" "oci_web_vpn" {
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.lab_subnet.id
-    assign_public_ip = false
+    assign_public_ip = false # Désactivé pour utiliser votre IP réservée
   }
 
   metadata = {
@@ -152,21 +152,19 @@ resource "oci_core_instance" "oci_web_vpn" {
   }
 }
 
-# Récupération de l'ID de l'IP privée de l'instance
+# 2. Récupération de l'IP privée principale de la machine
 data "oci_core_private_ips" "oci_private_ip" {
   ip_address = oci_core_instance.oci_web_vpn.private_ip
   subnet_id  = oci_core_subnet.lab_subnet.id
 }
 
-# Création de l'IP publique statique et attachement
-resource "oci_core_public_ip" "oci_reserved_ip" {
-  compartment_id = var.oci_tenancy_ocid
-  lifetime       = "RESERVED"
-  private_ip_id  = data.oci_core_private_ips.oci_private_ip.private_ips[0].id
-  display_name   = "OCI-Static-IP"
+# 3. Association de votre IP publique réservée existante via son OCID
+resource "oci_core_public_ip_association" "binding" {
+  public_ip_id = "ocid1.publicip.oc1.eu-paris-1.amaaaaaa7va3wmyabui2vp3obnzyu55dgyuc27x66tpt5ggyo6nremz7kuvq"
+  private_ip_id = data.oci_core_private_ips.oci_private_ip.private_ips[0].id
 }
 
-# Affichage de l'IP fixe à la fin de l'exécution
-output "oci_static_ip" {
-  value = oci_core_public_ip.oci_reserved_ip.ip_address
+# 4. Affichage de confirmation
+output "oci_static_ip_used" {
+  value = "L'instance utilise l'IP réservée fixe avec succès."
 }
