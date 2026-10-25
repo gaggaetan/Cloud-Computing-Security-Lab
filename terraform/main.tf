@@ -13,12 +13,14 @@ provider "oci" {
   tenancy_ocid = var.oci_tenancy_ocid
   user_ocid    = var.oci_user_ocid
   private_key  = var.oci_private_key
+  fingerprint  = var.oci_fingerprint
   region       = "us-ashburn-1"
-} 
+}
 
 variable "oci_tenancy_ocid" {}
 variable "oci_user_ocid" {}
 variable "oci_private_key" {}
+variable "oci_fingerprint" {}
 variable "ssh_public_key" {}
 
 data "aws_ami" "ubuntu" {
