@@ -14,7 +14,7 @@ provider "oci" {
   user_ocid    = var.oci_user_ocid
   private_key  = var.oci_private_key
   fingerprint  = var.oci_fingerprint
-  region       = "us-ashburn-1"
+  region       = "eu-paris-1" # CORRECTED REGION
 }
 
 variable "oci_tenancy_ocid" {}
@@ -117,26 +117,24 @@ resource "oci_core_subnet" "lab_subnet" {
   security_list_ids = [oci_core_vcn.lab_vcn.default_security_list_id] 
 }
 
-# Fetch latest Ubuntu 22.04 Image for OCI (E3 Flex)
 data "oci_core_images" "ubuntu_images" {
   compartment_id           = var.oci_tenancy_ocid
   operating_system         = "Canonical Ubuntu"
-  operating_system_version = "22.04"
+  operating_system_version = "20.04" # MATCHING MANUAL SETUP
   shape                    = "VM.Standard.E3.Flex" 
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
 
-# Create OCI Instance (Web + VPN) (E3 Flex)
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
+  fault_domain        = "FAULT-DOMAIN-3" # MATCHING MANUAL SETUP
   shape               = "VM.Standard.E3.Flex" 
 
-  # Flex shapes require explicit resource allocation
   shape_config {
     ocpus         = 1
-    memory_in_gbs = 1
+    memory_in_gbs = 16 # MATCHING MANUAL SETUP
   }
 
   source_details {
