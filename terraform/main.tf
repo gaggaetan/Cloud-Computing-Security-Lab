@@ -85,59 +85,27 @@ resource "aws_eip_association" "eip_assoc" {
 #
 #
 
-# Fetch OCI Availability Domain
-data "oci_identity_availability_domains" "ads" {
-  compartment_id = var.oci_tenancy_ocid
-}
-
-# Create a Virtual Cloud Network (VCN)
-resource "oci_core_vcn" "lab_vcn" {
-  compartment_id = var.oci_tenancy_ocid
-  cidr_block     = "10.0.0.0/16"
-  display_name   = "OCI-Lab-VCN"
-}
-
-# Create Internet Gateway
-resource "oci_core_internet_gateway" "lab_ig" {
-  compartment_id = var.oci_tenancy_ocid
-  vcn_id         = oci_core_vcn.lab_vcn.id
-  enabled        = true
-}
-
-# Create Route Table
-resource "oci_core_route_table" "lab_rt" {
-  compartment_id = var.oci_tenancy_ocid
-  vcn_id         = oci_core_vcn.lab_vcn.id
-  route_rules {
-    network_entity_id = oci_core_internet_gateway.lab_ig.id
-    destination       = "0.0.0.0/0"
-  }
-}
-
-# Create Subnet (Default Security List allows port 22/SSH)
-resource "oci_core_subnet" "lab_subnet" {
-  compartment_id    = var.oci_tenancy_ocid
-  vcn_id            = oci_core_vcn.lab_vcn.id
-  cidr_block        = "10.0.1.0/24"
-  route_table_id    = oci_core_route_table.lab_rt.id
-  security_list_ids = [oci_core_vcn.lab_vcn.default_security_list_id] 
-}
-
-# Fetch latest Ubuntu 22.04 Image for OCI
+# Fetch latest Ubuntu 22.04 Image for OCI (UPDATED TO ARM)
 data "oci_core_images" "ubuntu_images" {
   compartment_id           = var.oci_tenancy_ocid
   operating_system         = "Canonical Ubuntu"
   operating_system_version = "22.04"
-  shape                    = "VM.Standard.E2.1.Micro"
+  shape                    = "VM.Standard.A1.Flex" # Changed to ARM
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
 
-# Create OCI Instance (Web + VPN)
+# Create OCI Instance (Web + VPN) (UPDATED TO ARM)
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  shape               = "VM.Standard.E2.1.Micro" # OCI Always Free Tier
+  shape               = "VM.Standard.A1.Flex" # Changed to ARM
+
+  # ARM flex shapes require explicit CPU and memory allocation
+  shape_config {
+    ocpus         = 1
+    memory_in_gbs = 6
+  }
 
   source_details {
     source_id   = data.oci_core_images.ubuntu_images.images[0].id
