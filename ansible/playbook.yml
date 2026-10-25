@@ -25,7 +25,7 @@
       register: public_key
       changed_when: false
 
-# 2. Configure AWS Private Database
+# 2. Configure AWS Private Database & Insert Data
 - name: Configure AWS Database Node
   hosts: aws_db
   become: yes
@@ -37,11 +37,49 @@
         timeout: 300
     - name: Gather facts
       setup:
-    - name: Install MySQL Server
+    - name: Install MySQL and dependencies
       apt:
-        name: mysql-server
+        name: 
+          - mysql-server
+          - python3-pymysql
         state: present
         update_cache: yes
+    - name: Configure MySQL to listen on all interfaces
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address'
+        line: 'bind-address = 0.0.0.0'
+      notify: Restart MySQL
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+    - name: Create database
+      community.mysql.mysql_db:
+        name: lab_db
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+    - name: Create database user for OCI Web Node
+      community.mysql.mysql_user:
+        name: lab_user
+        password: "SuperSecretPassword123!"
+        priv: 'lab_db.*:ALL'
+        host: '%'
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+    - name: Create table and insert data
+      community.mysql.mysql_query:
+        login_db: lab_db
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        query: |
+          CREATE TABLE IF NOT EXISTS messages (id INT AUTO_INCREMENT PRIMARY KEY, text VARCHAR(255));
+          INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel!') ON DUPLICATE KEY UPDATE text=text;
+  handlers:
+    - name: Restart MySQL
+      service:
+        name: mysql
+        state: restarted
 
 # 3. Configure Site-to-Site Tunnels
 - name: Configure AWS VPN Tunnel
@@ -70,7 +108,7 @@
         enabled: yes
         state: restarted
 
-- name: Configure OCI VPN Tunnel
+- name: Configure OCI VPN Tunnel & Web Service
   hosts: oci_node
   become: yes
   tasks:
@@ -93,3 +131,28 @@
         name: wg-quick@wg0
         enabled: yes
         state: restarted
+    - name: Install Apache and PHP
+      apt:
+        name:
+          - apache2
+          - php
+          - php-mysql
+        state: present
+    - name: Create Web Application
+      copy:
+        dest: /var/www/html/index.php
+        content: |
+          <?php
+          $mysqli = new mysqli("10.1.2.50", "lab_user", "SuperSecretPassword123!", "lab_db");
+          if ($mysqli->connect_error) {
+            die("Connection failed (VPN might be down): " . $mysqli->connect_error);
+          }
+          $result = $mysqli->query("SELECT text FROM messages LIMIT 1");
+          $row = $result->fetch_assoc();
+          echo "<h1>Success!</h1>";
+          echo "<p>Message from DB: " . $row['text'] . "</p>";
+          ?>
+    - name: Remove default index.html
+      file:
+        path: /var/www/html/index.html
+        state: absent
