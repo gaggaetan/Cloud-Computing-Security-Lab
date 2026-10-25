@@ -117,23 +117,26 @@ resource "oci_core_subnet" "lab_subnet" {
   security_list_ids = [oci_core_vcn.lab_vcn.default_security_list_id] 
 }
 
+# Fetch latest Ubuntu 22.04 Image for OCI (PAID TIER SHAPE)
 data "oci_core_images" "ubuntu_images" {
   compartment_id           = var.oci_tenancy_ocid
   operating_system         = "Canonical Ubuntu"
   operating_system_version = "22.04"
-  shape                    = "VM.Standard.A1.Flex"
+  shape                    = "VM.Standard.E4.Flex" # Paid AMD Shape
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
 
+# Create OCI Instance (Web + VPN) (PAID TIER SHAPE)
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
-  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[2].name
-  shape               = "VM.Standard.A1.Flex"
+  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
+  shape               = "VM.Standard.E4.Flex" # Paid AMD Shape
 
+  # Explicit CPU and memory allocation (Minimizing costs)
   shape_config {
     ocpus         = 1
-    memory_in_gbs = 6
+    memory_in_gbs = 1
   }
 
   source_details {
