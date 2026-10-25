@@ -144,7 +144,7 @@ resource "oci_core_instance" "oci_web_vpn" {
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.lab_subnet.id
-    assign_public_ip = true
+    assign_public_ip = false
   }
 
   metadata = {
@@ -152,6 +152,21 @@ resource "oci_core_instance" "oci_web_vpn" {
   }
 }
 
-output "oci_public_ip" {
-  value = oci_core_instance.oci_web_vpn.public_ip
+# Récupération de l'ID de l'IP privée de l'instance
+data "oci_core_private_ips" "oci_private_ip" {
+  ip_address = oci_core_instance.oci_web_vpn.private_ip
+  subnet_id  = oci_core_subnet.lab_subnet.id
+}
+
+# Création de l'IP publique statique et attachement
+resource "oci_core_public_ip" "oci_reserved_ip" {
+  compartment_id = var.oci_tenancy_ocid
+  lifetime       = "RESERVED"
+  private_ip_id  = data.oci_core_private_ips.oci_private_ip.private_ips[0].id
+  display_name   = "OCI-Static-IP"
+}
+
+# Affichage de l'IP fixe à la fin de l'exécution
+output "oci_static_ip" {
+  value = oci_core_public_ip.oci_reserved_ip.ip_address
 }
