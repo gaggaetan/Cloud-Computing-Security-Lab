@@ -22,8 +22,8 @@ variable "oci_private_key" {}
 
 # Example AWS EC2 Instance for Database & VPN
 resource "aws_instance" "aws_db_vpn" {
-  ami           = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS
-  instance_type = "t2.micro"
+  ami           = "ami-0c7217cdde317cfec"
+  instance_type = "t3.micro"              
   tags = { Name = "AWS-DB-VPN" }
 }
 
