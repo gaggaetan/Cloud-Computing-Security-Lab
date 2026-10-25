@@ -163,6 +163,8 @@ resource "aws_instance" "aws_db" {
   subnet_id              = aws_subnet.private_subnet.id
   key_name               = aws_key_pair.ansible_key.key_name
   vpc_security_group_ids = [aws_security_group.db_sg.id]
+  
+  private_ip             = "10.1.2.50" # Fixes the DB private IP permanently
 
   tags = { Name = "AWS-Private-DB" }
 }
