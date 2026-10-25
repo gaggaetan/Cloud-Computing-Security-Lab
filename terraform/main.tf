@@ -86,8 +86,16 @@ resource "aws_route_table_association" "public_assoc" {
 # 3. Security Groups
 resource "aws_security_group" "vpn_sg" {
   name        = "aws_vpn_sg"
-  description = "Allow SSH and WireGuard"
+  description = "Allow SSH, WireGuard, and internal NAT traffic"
   vpc_id      = aws_vpc.lab_vpc.id
+
+  # New rule: Allow traffic from the private subnet to use the NAT
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.1.0.0/16"] 
+  }
 
   ingress {
     from_port   = 22
@@ -95,12 +103,14 @@ resource "aws_security_group" "vpn_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  
   ingress {
     from_port   = 51820
     to_port     = 51820
     protocol    = "udp"
-    cidr_blocks = ["141.145.212.135/32"] # OCI Public IP
+    cidr_blocks = ["141.145.212.135/32"] 
   }
+  
   egress {
     from_port   = 0
     to_port     = 0
@@ -108,7 +118,6 @@ resource "aws_security_group" "vpn_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
 resource "aws_security_group" "db_sg" {
   name        = "aws_db_sg"
   description = "Allow MySQL and SSH from VPN only"
