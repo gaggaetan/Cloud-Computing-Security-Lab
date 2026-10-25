@@ -14,7 +14,7 @@ provider "oci" {
   user_ocid    = var.oci_user_ocid
   private_key  = var.oci_private_key
   region       = "us-ashburn-1"
-}
+} 
 
 variable "oci_tenancy_ocid" {}
 variable "oci_user_ocid" {}
