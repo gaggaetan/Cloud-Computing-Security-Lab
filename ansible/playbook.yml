@@ -1,50 +1,89 @@
 ---
-# 1. AWS Public VPN Node
-- name: Configure AWS VPN Node
-  hosts: aws_vpn
+# 1. Base Setup and WireGuard Installation
+- name: Prepare VPN Nodes and Install WireGuard
+  hosts: aws_vpn, oci_node
   become: yes
-  gather_facts: no
   tasks:
-    - name: Wait for SSH to become available
+    - name: Wait for SSH
       wait_for_connection:
         delay: 5
         timeout: 300
-    - name: Gather facts
-      setup:
-    - name: Update apt cache
+    - name: Install WireGuard
       apt:
+        name: wireguard
+        state: present
         update_cache: yes
+    - name: Generate private key
+      shell: wg genkey
+      register: private_key
+      changed_when: false
+    - name: Generate public key
+      shell: echo "{{ private_key.stdout }}" | wg pubkey
+      register: public_key
+      changed_when: false
 
-# 2. AWS Private Database Node
+# 2. Configure AWS Private Database
 - name: Configure AWS Database Node
   hosts: aws_db
   become: yes
-  gather_facts: no
   tasks:
-    - name: Wait for SSH to become available via Bastion
+    - name: Wait for SSH via Bastion
       wait_for_connection:
         delay: 5
         timeout: 300
-    - name: Gather facts
-      setup:
     - name: Install MySQL Server
       apt:
         name: mysql-server
         state: present
         update_cache: yes
 
-# 3. OCI Public Web & VPN Node
-- name: Configure OCI Web and VPN Node
+# 3. Configure Site-to-Site Tunnels
+- name: Configure AWS VPN Tunnel
+  hosts: aws_vpn
+  become: yes
+  tasks:
+    - name: Create wg0 config on AWS
+      copy:
+        dest: /etc/wireguard/wg0.conf
+        content: |
+          [Interface]
+          Address = 10.99.0.1/24
+          PrivateKey = {{ private_key.stdout }}
+          ListenPort = 51820
+          PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE
+          PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o ens5 -j MASQUERADE
+
+          [Peer]
+          PublicKey = {{ hostvars[groups['oci_node'][0]]['public_key']['stdout'] }}
+          Endpoint = 141.145.212.135:51820
+          AllowedIPs = 10.99.0.2/32, 10.0.0.0/16
+          PersistentKeepalive = 25
+    - name: Start and enable WireGuard
+      systemd:
+        name: wg-quick@wg0
+        enabled: yes
+        state: restarted
+
+- name: Configure OCI VPN Tunnel
   hosts: oci_node
   become: yes
-  gather_facts: no
   tasks:
-    - name: Wait for SSH to become available
-      wait_for_connection:
-        delay: 10
-        timeout: 300
-    - name: Gather facts
-      setup:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
+    - name: Create wg0 config on OCI
+      copy:
+        dest: /etc/wireguard/wg0.conf
+        content: |
+          [Interface]
+          Address = 10.99.0.2/24
+          PrivateKey = {{ private_key.stdout }}
+          ListenPort = 51820
+
+          [Peer]
+          PublicKey = {{ hostvars[groups['aws_vpn'][0]]['public_key']['stdout'] }}
+          Endpoint = 13.61.252.157:51820
+          AllowedIPs = 10.99.0.1/32, 10.1.0.0/16
+          PersistentKeepalive = 25
+    - name: Start and enable WireGuard
+      systemd:
+        name: wg-quick@wg0
+        enabled: yes
+        state: restarted
