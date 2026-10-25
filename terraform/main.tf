@@ -159,13 +159,18 @@ data "oci_core_private_ips" "oci_private_ip" {
   subnet_id  = oci_core_subnet.lab_subnet.id
 }
 
-# 3. Association de votre IP publique réservée existante en utilisant sa ressource officielle
-resource "oci_core_public_ip" "existing_reserved_ip" {
-  compartment_id = var.oci_tenancy_ocid
-  lifetime       = "RESERVED"
-  private_ip_id  = data.oci_core_private_ips.oci_private_ip.private_ips[0].id
-  
-  # Si Terraform essaie d'en créer une nouvelle, on peut l'importer ou lier l'ID. 
-  # Toutefois, la méthode la plus simple avec un OCID existant est de l'importer dans l'état, 
-  # ou d'utiliser une source de données pour la récupérer :
+# 3. Interrogation de votre IP publique existante via son OCID (évite la recréation)
+data "oci_core_public_ip" "existing_reserved_ip" {
+  public_ip_id = "ocid1.publicip.oc1.eu-paris-1.amaaaaaa7va3wmyabui2vp3obnzyu55dgyuc27x66tpt5ggyo6nremz7kuvq"
+}
+
+# 4. Association de cette IP fixe à la nouvelle instance
+resource "oci_core_public_ip_association" "binding" {
+  public_ip_id  = data.oci_core_public_ip.existing_reserved_ip.id
+  private_ip_id = data.oci_core_private_ips.oci_private_ip.private_ips[0].id
+}
+
+# 5. Affichage de confirmation
+output "oci_static_ip" {
+  value = data.oci_core_public_ip.existing_reserved_ip.ip_address
 }
