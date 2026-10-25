@@ -6,26 +6,43 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "eu-north-1"
 }
 
 provider "oci" {
   tenancy_ocid = var.oci_tenancy_ocid
   user_ocid    = var.oci_user_ocid
   private_key  = var.oci_private_key
-  region       = "us-ashburn-1"
+  region       = "us-ashburn-1" # Modifiez si votre instance OCI est ailleurs
 }
 
 variable "oci_tenancy_ocid" {}
 variable "oci_user_ocid" {}
 variable "oci_private_key" {}
 
-# Example AWS EC2 Instance for Database & VPN
-resource "aws_instance" "aws_db_vpn" {
-  ami           = "ami-0c7217cdde317cfec"
-  instance_type = "t3.micro"              
-  tags = { Name = "AWS-DB-VPN" }
+# Récupération dynamique de la dernière image Ubuntu 22.04 pour eu-north-1
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = ["099720109477"] # Canonical (Ubuntu)
 }
 
-# Example OCI Compute Instance for Web Service & VPN
-# (Requires defining exact OCI availability domains and shapes in a full deployment)
+# Instance AWS pour la base de données et le VPN
+resource "aws_instance" "aws_db_vpn" {
+  ami               = data.aws_ami.ubuntu.id
+  instance_type     = "t3.micro"
+  availability_zone = "eu-north-1b"
+  
+  tags = { 
+    Name = "AWS-DB-VPN" 
+  }
+}
+
+# (Ajoutez ici votre bloc resource "oci_core_instance" pour la partie Oracle)

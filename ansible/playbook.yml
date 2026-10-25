@@ -4,23 +4,25 @@
   user: ubuntu
   become: yes
   tasks:
-    - name: Install MySQL and WireGuard
+    - name: Install MySQL, WireGuard and Snort
       apt:
         name: 
           - mysql-server
           - wireguard
           - snort
         state: latest
+        update_cache: yes
 
 - name: Configure OCI Web and VPN Node
   hosts: oci_node
   user: ubuntu
   become: yes
   tasks:
-    - name: Install Docker and WireGuard
+    - name: Install Docker, WireGuard and Snort
       apt:
         name: 
           - docker.io
           - wireguard
           - snort
         state: latest
+        update_cache: yes
