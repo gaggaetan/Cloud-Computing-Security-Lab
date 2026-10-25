@@ -1,0 +1,26 @@
+---
+- name: Configure AWS Database and VPN Node
+  hosts: aws_node
+  user: ubuntu
+  become: yes
+  tasks:
+    - name: Install MySQL and WireGuard
+      apt:
+        name: 
+          - mysql-server
+          - wireguard
+          - snort
+        state: latest
+
+- name: Configure OCI Web and VPN Node
+  hosts: oci_node
+  user: ubuntu
+  become: yes
+  tasks:
+    - name: Install Docker and WireGuard
+      apt:
+        name: 
+          - docker.io
+          - wireguard
+          - snort
+        state: latest

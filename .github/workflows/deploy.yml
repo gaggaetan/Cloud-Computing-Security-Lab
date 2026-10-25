@@ -1,0 +1,39 @@
+name: Cloud Infrastructure & App Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init & Apply
+        working-directory: ./terraform
+        env:
+          TF_VAR_oci_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+          TF_VAR_oci_user_ocid: ${{ secrets.OCI_USER_OCID }}
+          TF_VAR_oci_private_key: ${{ secrets.OCI_PRIVATE_KEY }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Run Ansible Configuration
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
