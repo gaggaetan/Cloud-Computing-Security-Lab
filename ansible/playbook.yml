@@ -75,7 +75,7 @@
         query: 
           - "CREATE TABLE IF NOT EXISTS messages (id INT AUTO_INCREMENT PRIMARY KEY, text VARCHAR(255))"
           - "TRUNCATE TABLE messages"
-          - "INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel!')"
+          - "INSERT INTO messages (text) VALUES ('Hello from the AWS Private Database through the WireGuard Tunnel! - this mean you finsih the lab !!!!!! youhoooooooo - gaetan"')"
   handlers:
     - name: Restart MySQL
       service:
@@ -188,3 +188,62 @@
         jump: ACCEPT
         action: insert
         rule_num: 1
+        
+
+# 4. Sécurité applicative et réseau (WAF & IDS)
+- name: Deploy ModSecurity (WAF) and Snort (IDS)
+  hosts: oci_node
+  become: yes
+  tasks:
+    # --- MODSECURITY (WAF) ---
+    - name: Install ModSecurity
+      apt:
+        name: libapache2-mod-security2
+        state: present
+
+    - name: Initialize ModSecurity Configuration
+      shell: cp /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
+      args:
+        creates: /etc/modsecurity/modsecurity.conf
+
+    - name: Enable ModSecurity Blocking Mode
+      replace:
+        path: /etc/modsecurity/modsecurity.conf
+        regexp: '^SecRuleEngine DetectionOnly'
+        replace: 'SecRuleEngine On'
+
+    - name: Add Custom WAF Rule (SQLi simulation)
+      lineinfile:
+        path: /etc/modsecurity/modsecurity.conf
+        line: 'SecRule ARGS:testparam "@contains malicious" "id:1234,deny,status:403,msg:''WAF Blocked Test Payload''"'
+        insertafter: EOF
+
+    - name: Restart Apache to apply WAF
+      service:
+        name: apache2
+        state: restarted
+
+    # --- SNORT (IDS) ---
+    - name: Install Snort non-interactively
+      apt:
+        name: snort
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+    - name: Configure Snort HOME_NET
+      lineinfile:
+        path: /etc/snort/snort.conf
+        regexp: '^ipvar HOME_NET'
+        line: 'ipvar HOME_NET [10.0.1.0/24,10.99.0.0/24,10.1.0.0/16]'
+
+    - name: Add Custom Snort Rule (ICMP/Ping Detection)
+      lineinfile:
+        path: /etc/snort/rules/local.rules
+        line: 'alert icmp any any -> $HOME_NET any (msg:"ICMP Ping Detected by Snort"; sid:1000001; rev:1;)'
+        insertafter: EOF
+
+    - name: Restart Snort
+      service:
+        name: snort
+        state: restarted
