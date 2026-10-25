@@ -125,7 +125,9 @@ data "oci_core_images" "ubuntu_images" {
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
-# Désactivation de l'IP publique automatique sur l'instance
+
+
+# Create OCI Instance (Web + VPN)
 resource "oci_core_instance" "oci_web_vpn" {
   compartment_id      = var.oci_tenancy_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
@@ -144,7 +146,7 @@ resource "oci_core_instance" "oci_web_vpn" {
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.lab_subnet.id
-    assign_public_ip = false # <--- Désactive l'IP éphémère
+    assign_public_ip = false # Disables ephemeral IP
   }
 
   metadata = {
@@ -152,20 +154,26 @@ resource "oci_core_instance" "oci_web_vpn" {
   }
 }
 
-# Récupération de l'IP privée interne de l'instance OCI
+# Fetch the private IP of the newly created instance
 data "oci_core_private_ips" "oci_private_ip" {
   ip_address = oci_core_instance.oci_web_vpn.private_ip
   subnet_id  = oci_core_subnet.lab_subnet.id
 }
 
-# Association de votre IP Réservée existante (ex: 88.96.33.38 ou celle de votre choix)
-resource "oci_core_public_ip" "static_ip_assoc" {
+# Instruct Terraform to adopt your existing IP into state
+import {
+  to = oci_core_public_ip.existing_reserved_ip
+  id = "ocid1.publicip.oc1.eu-paris-1.amaaaaaa7va3wmyabui2vp3obnzyu55dgyuc27x66tpt5ggyo6nremz7kuvq"
+}
+
+# Manage the existing IP and attach it to the new private IP
+resource "oci_core_public_ip" "existing_reserved_ip" {
   compartment_id = var.oci_tenancy_ocid
   lifetime       = "RESERVED"
   private_ip_id  = data.oci_core_private_ips.oci_private_ip.private_ips[0].id
-  display_name   = "OCI-Static-IP"
 }
 
-output "oci_static_ip_used" {
-  value = oci_core_public_ip.static_ip_assoc.ip_address
+# Output the confirmed static IP
+output "oci_static_ip" {
+  value = oci_core_public_ip.existing_reserved_ip.ip_address
 }
